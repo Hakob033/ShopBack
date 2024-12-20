@@ -1,18 +1,26 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import bcrypt from "bcrypt";
-import { PrismaClient } from "@prisma/client";
-
-dotenv.config();
+import authRoutes from "./routes/authRoutes";
+import inventoryRoutes from "./routes/inventoryRoutes";
 
 const app = express();
-const prisma = new PrismaClient();
-
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+// Routes
+app.use("/auth", authRoutes);
+app.use("/inventory", inventoryRoutes);
+
+app.get("/", (req: Request, res: Response) => {
+  res.send("Welcome to the Inventory API");
+});
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: Function) => {
+  res.status(500).json({ message: err.message });
+});
+
+const PORT = 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
