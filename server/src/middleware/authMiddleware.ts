@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+const express = require("express");
 import { Request, Response, NextFunction } from "express";
 
 export const authenticateToken = (

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 
@@ -46,7 +46,9 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { name } });
+    const user = await prisma.user.findUnique({
+      where: { name },
+    });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       res.status(401).json({ message: "Invalid username or password." });
@@ -57,7 +59,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ message: "Login successful.", token });
+    res.send({ token, user });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Internal server error." });
