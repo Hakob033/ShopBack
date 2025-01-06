@@ -1,36 +1,10 @@
-import { Request, Response } from "express";
-import prisma from "../prismaClient";
+import express from "express";
+import { addProduct, deleteProduct } from "../controllers/productController"; // Import the controller
 
-// Function to handle the POST /products route
-const addProduct = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, sku, category, description, price, stockQuantity } = req.body;
+const router = express.Router();
 
-    // Ensure required fields are provided
-    if (!name || !sku || !price || stockQuantity === undefined) {
-      res
-        .status(400)
-        .json({ error: "Name, SKU, price, and stockQuantity are required" });
-      return; // Explicitly return here to stop further execution
-    }
+// Define the route
+router.post("/products", addProduct);
+router.delete("/products/:id", deleteProduct);
 
-    // Create a new product in the database
-    const newProduct = await prisma.product.create({
-      data: {
-        name,
-        sku,
-        category,
-        description,
-        price,
-        stockQuantity,
-      },
-    });
-
-    res.status(201).json(newProduct);
-  } catch (error) {
-    console.error("Error adding product:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
-export { addProduct };
+export default router;
