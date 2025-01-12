@@ -10,9 +10,10 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
       where: { id: parseInt(id) }, // Convert the id to an integer if necessary
     });
 
-    // if (!product) {
-    //   return res.status(404).json({ error: "Product not found" });
-    // }
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
 
     // Send the product details in the response
     res.status(200).json(product);
@@ -85,6 +86,11 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
       where: { id: parseInt(id) },
     });
 
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
     await prisma.product.delete({
       where: { id: parseInt(id) },
     });
@@ -95,15 +101,17 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 const addProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, sku, category, description, price, stockQuantity } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : ""; // Get the image URL from multer
 
     // Ensure required fields are provided
-    if (!name || !sku || !price || stockQuantity === undefined) {
-      res
-        .status(400)
-        .json({ error: "Name, SKU, price, and stockQuantity are required" });
+    if (!name || !sku || !price || stockQuantity === undefined || !imageUrl) {
+      res.status(400).json({
+        error: "Name, SKU, price, stockQuantity, and imageUrl are required",
+      });
       return; // Explicitly return here to stop further execution
     }
 
@@ -116,6 +124,7 @@ const addProduct = async (req: Request, res: Response): Promise<void> => {
         description,
         price,
         stockQuantity,
+        imageUrl, // Save the image URL
       },
     });
 
@@ -125,4 +134,5 @@ const addProduct = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 export { deleteProduct, addProduct, getProducts, getProductById };

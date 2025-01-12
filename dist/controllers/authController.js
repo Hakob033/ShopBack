@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prismaClient_1 = __importDefault(require("../prismaClient"));
 const registerUser = async (req, res) => {
     const { name, password } = req.body;
     if (!name || !password) {
@@ -15,13 +14,13 @@ const registerUser = async (req, res) => {
         return;
     }
     try {
-        const existingUser = await prisma.user.findUnique({ where: { name } });
+        const existingUser = await prismaClient_1.default.user.findUnique({ where: { name } });
         if (existingUser) {
             res.status(409).json({ message: "Username already exists." });
             return;
         }
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
-        const user = await prisma.user.create({
+        const user = await prismaClient_1.default.user.create({
             data: { name, password: hashedPassword },
         });
         res
@@ -41,7 +40,7 @@ const loginUser = async (req, res) => {
         return;
     }
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prismaClient_1.default.user.findUnique({
             where: { name },
         });
         if (!user || !(await bcryptjs_1.default.compare(password, user.password))) {
