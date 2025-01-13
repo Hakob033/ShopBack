@@ -1,30 +1,18 @@
-import express from "express";
-import multer from "multer";
+import express, { Router } from "express";
 import {
   addProduct,
   deleteProduct,
   getProducts,
   getProductById,
-} from "../controllers/productController"; // Import the controller
+} from "../controllers/productController";
+import { authenticateToken } from "../middleware/authMiddleware";
 
-const router = express.Router();
-
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Folder to save images
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
-const upload = multer({ storage });
+const router: Router = express.Router();
 
 // Define the routes
-router.post("/products", upload.single("image"), addProduct); // Use multer for file upload
+router.post("/products", addProduct);
 router.delete("/products/:id", deleteProduct);
 router.get("/products/:id", getProductById);
-router.get("/products", getProducts);
+router.get("/products", getProducts); // Public route
 
 export default router;

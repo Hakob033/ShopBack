@@ -3,11 +3,10 @@ import prisma from "../prismaClient";
 
 const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params; // Get the id from URL parameters
+    const { id } = req.params;
 
-    // Fetch the product by id
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) }, // Convert the id to an integer if necessary
+      where: { id: parseInt(id) },
     });
 
     if (!product) {
@@ -15,7 +14,6 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Send the product details in the response
     res.status(200).json(product);
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -27,11 +25,9 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = 1, pageSize = 6, category, name } = req.query;
 
-    // Convert query parameters to appropriate types
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = parseInt(pageSize as string, 10);
 
-    // Validate pagination parameters
     if (pageNum < 1 || pageSizeNum < 1) {
       res
         .status(400)
@@ -39,7 +35,6 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Build the query filter based on optional query parameters
     const whereFilter: any = {};
 
     if (category) {
@@ -48,23 +43,21 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
 
     if (name) {
       whereFilter.name = {
-        contains: name as string, // Partial match on name
-        mode: "insensitive", // Case-insensitive search
+        contains: name as string,
+        mode: "insensitive",
       };
     }
 
-    // Fetch products with filtering and pagination
     const products = await prisma.product.findMany({
       where: whereFilter,
-      skip: (pageNum - 1) * pageSizeNum, // Pagination: calculate skip
-      take: pageSizeNum, // Limit number of products per page
+      skip: (pageNum - 1) * pageSizeNum,
+      take: pageSizeNum,
     });
 
     const totalProducts = await prisma.product.count({
       where: whereFilter,
     });
 
-    // Send the response with products and pagination info
     res.status(200).json({
       products,
       totalProducts,
@@ -105,17 +98,15 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
 const addProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, sku, category, description, price, stockQuantity } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : ""; // Get the image URL from multer
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : "";
 
-    // Ensure required fields are provided
-    if (!name || !sku || !price || stockQuantity === undefined || !imageUrl) {
+    if (!name || !sku || !price || stockQuantity === undefined) {
       res.status(400).json({
         error: "Name, SKU, price, stockQuantity, and imageUrl are required",
       });
-      return; // Explicitly return here to stop further execution
+      return;
     }
 
-    // Create a new product in the database
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -124,7 +115,7 @@ const addProduct = async (req: Request, res: Response): Promise<void> => {
         description,
         price,
         stockQuantity,
-        imageUrl, // Save the image URL
+        imageUrl,
       },
     });
 
