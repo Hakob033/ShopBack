@@ -25,7 +25,7 @@ const getProductById = async (req, res) => {
 exports.getProductById = getProductById;
 const getProducts = async (req, res) => {
     try {
-        const { page = 1, pageSize = 6, category, name } = req.query;
+        const { page = 1, pageSize = 6, search, stockQuantity } = req.query;
         const pageNum = parseInt(page, 10);
         const pageSizeNum = parseInt(pageSize, 10);
         if (pageNum < 1 || pageSizeNum < 1) {
@@ -35,23 +35,49 @@ const getProducts = async (req, res) => {
             return;
         }
         const whereFilter = {};
-        if (category) {
-            whereFilter.category = category;
+        // Handle the search filter (can be name, category, or sku)
+        if (search) {
+            whereFilter.OR = [
+                { name: { contains: search, mode: undefined } },
+                { category: { contains: search, mode: undefined } },
+                { sku: { contains: search, mode: undefined } },
+            ];
         }
-        if (name) {
-            whereFilter.name = {
-                contains: name,
-                mode: "insensitive",
-            };
+        // Handle stockQuantity filter
+        if (stockQuantity) {
+            // Convert stock status string into numerical range
+            if (stockQuantity === "In Stock") {
+                whereFilter.stockQuantity = {
+                    gt: 10, // Greater than 10
+                };
+            }
+            else if (stockQuantity === "Low Stock") {
+                whereFilter.stockQuantity = {
+                    gt: 0,
+                    lte: 10, // Greater than 0 and less than or equal to 10
+                };
+            }
+            else if (stockQuantity === "Out of Stock") {
+                whereFilter.stockQuantity = {
+                    lte: 0, // Less than or equal to 0
+                };
+            }
+            else {
+                res.status(400).json({ error: "Invalid stockQuantity value provided" });
+                return;
+            }
         }
+        // Fetch products based on the constructed filter
         const products = await prismaClient_1.default.product.findMany({
             where: whereFilter,
             skip: (pageNum - 1) * pageSizeNum,
             take: pageSizeNum,
         });
+        // Get the total number of products matching the filter
         const totalProducts = await prismaClient_1.default.product.count({
             where: whereFilter,
         });
+        // Return the products and pagination data
         res.status(200).json({
             products,
             totalProducts,
