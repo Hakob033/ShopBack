@@ -23,7 +23,8 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
 
 const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = 1, pageSize = 6, category, name, stockQuantity } = req.query;
+    const { page = 1, pageSize = 6, search, stockQuantity } = req.query;
+    console.log(req.query);
 
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = parseInt(pageSize as string, 10);
@@ -37,17 +38,16 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
 
     const whereFilter: any = {};
 
-    if (category) {
-      whereFilter.category = category;
+    // Handle the search filter (can be name, category, or sku)
+    if (search) {
+      whereFilter.OR = [
+        { name: { contains: search as string, mode: undefined } },
+        { category: { contains: search as string, mode: undefined } },
+        { sku: { contains: search as string, mode: undefined } },
+      ];
     }
 
-    if (name) {
-      whereFilter.name = {
-        contains: name as string,
-        mode: "insensitive",
-      };
-    }
-
+    // Handle stockQuantity filter
     if (stockQuantity) {
       // Convert stock status string into numerical range
       if (stockQuantity === "In Stock") {
@@ -69,16 +69,19 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // Fetch products based on the constructed filter
     const products = await prisma.product.findMany({
       where: whereFilter,
       skip: (pageNum - 1) * pageSizeNum,
       take: pageSizeNum,
     });
 
+    // Get the total number of products matching the filter
     const totalProducts = await prisma.product.count({
       where: whereFilter,
     });
 
+    // Return the products and pagination data
     res.status(200).json({
       products,
       totalProducts,
