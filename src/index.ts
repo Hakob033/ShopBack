@@ -47,8 +47,6 @@ app.post(
       return;
     }
 
-    console.log(path.join(__dirname, "..", "public", "protected_files"));
-
     // Send the image URL back to the client
     const imageUrl = req.file.filename;
     res.json({ imageUrl }); // Just call res.json, don't return the Response object

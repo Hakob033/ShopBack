@@ -24,7 +24,6 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
 const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = 1, pageSize = 6, search, stockQuantity } = req.query;
-    console.log(req.query);
 
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = parseInt(pageSize as string, 10);
