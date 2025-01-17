@@ -3,19 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProductById = exports.getProducts = exports.addProduct = exports.deleteProduct = void 0;
+exports.updateProduct = exports.getProductById = exports.getProducts = exports.addProduct = exports.deleteProduct = void 0;
 const prismaClient_1 = __importDefault(require("../prismaClient"));
 const getProductById = async (req, res) => {
     try {
-        const { id } = req.params; // Get the id from URL parameters
-        // Fetch the product by id
+        const { id } = req.params;
         const product = await prismaClient_1.default.product.findUnique({
-            where: { id: parseInt(id) }, // Convert the id to an integer if necessary
+            where: { id: parseInt(id) },
         });
-        // if (!product) {
-        //   return res.status(404).json({ error: "Product not found" });
-        // }
-        // Send the product details in the response
+        if (!product) {
+            res.status(404).json({ error: "Product not found" });
+            return;
+        }
         res.status(200).json(product);
     }
     catch (error) {
@@ -27,37 +26,32 @@ exports.getProductById = getProductById;
 const getProducts = async (req, res) => {
     try {
         const { page = 1, pageSize = 6, category, name } = req.query;
-        // Convert query parameters to appropriate types
         const pageNum = parseInt(page, 10);
         const pageSizeNum = parseInt(pageSize, 10);
-        // Validate pagination parameters
         if (pageNum < 1 || pageSizeNum < 1) {
             res
                 .status(400)
                 .json({ error: "Page and pageSize must be greater than 0" });
             return;
         }
-        // Build the query filter based on optional query parameters
         const whereFilter = {};
         if (category) {
             whereFilter.category = category;
         }
         if (name) {
             whereFilter.name = {
-                contains: name, // Partial match on name
-                mode: "insensitive", // Case-insensitive search
+                contains: name,
+                mode: "insensitive",
             };
         }
-        // Fetch products with filtering and pagination
         const products = await prismaClient_1.default.product.findMany({
             where: whereFilter,
-            skip: (pageNum - 1) * pageSizeNum, // Pagination: calculate skip
-            take: pageSizeNum, // Limit number of products per page
+            skip: (pageNum - 1) * pageSizeNum,
+            take: pageSizeNum,
         });
         const totalProducts = await prismaClient_1.default.product.count({
             where: whereFilter,
         });
-        // Send the response with products and pagination info
         res.status(200).json({
             products,
             totalProducts,
@@ -78,6 +72,10 @@ const deleteProduct = async (req, res) => {
         const product = await prismaClient_1.default.product.findUnique({
             where: { id: parseInt(id) },
         });
+        if (!product) {
+            res.status(404).json({ error: "Product not found" });
+            return;
+        }
         await prismaClient_1.default.product.delete({
             where: { id: parseInt(id) },
         });
@@ -91,15 +89,17 @@ const deleteProduct = async (req, res) => {
 exports.deleteProduct = deleteProduct;
 const addProduct = async (req, res) => {
     try {
-        const { name, sku, category, description, price, stockQuantity } = req.body;
-        // Ensure required fields are provided
+        const { name, sku, category, description, price, stockQuantity, imageUrl } = req.body;
+        // Update the image URL path to match the correct static serving route
+        // const imageUrl = req.file
+        //   ? `/public/protected_files/${req.file.filename}`
+        //   : "";
         if (!name || !sku || !price || stockQuantity === undefined) {
-            res
-                .status(400)
-                .json({ error: "Name, SKU, price, and stockQuantity are required" });
-            return; // Explicitly return here to stop further execution
+            res.status(400).json({
+                error: "Name, SKU, price, stockQuantity, and imageUrl are required",
+            });
+            return;
         }
-        // Create a new product in the database
         const newProduct = await prismaClient_1.default.product.create({
             data: {
                 name,
@@ -108,6 +108,7 @@ const addProduct = async (req, res) => {
                 description,
                 price,
                 stockQuantity,
+                imageUrl, // Store the correct image URL
             },
         });
         res.status(201).json(newProduct);
@@ -118,3 +119,34 @@ const addProduct = async (req, res) => {
     }
 };
 exports.addProduct = addProduct;
+const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, sku, category, description, price, stockQuantity, imageUrl } = req.body;
+        const product = await prismaClient_1.default.product.findUnique({
+            where: { id: parseInt(id) },
+        });
+        if (!product) {
+            res.status(404).json({ error: "Product not found" });
+            return;
+        }
+        const updatedProduct = await prismaClient_1.default.product.update({
+            where: { id: parseInt(id) },
+            data: {
+                name: name || product.name,
+                sku: sku || product.sku,
+                category: category || product.category,
+                description: description || product.description,
+                price: price !== undefined ? price : product.price,
+                stockQuantity: stockQuantity !== undefined ? stockQuantity : product.stockQuantity,
+                imageUrl: imageUrl !== undefined ? imageUrl : product.imageUrl,
+            },
+        });
+        res.status(200).json(updatedProduct);
+    }
+    catch (error) {
+        console.error("Error updating product:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+exports.updateProduct = updateProduct;

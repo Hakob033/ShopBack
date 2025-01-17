@@ -4,24 +4,33 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "aefgrhbdacsg"; // Same secret as used in the controller
+const JWT_SECRET = process.env.JWT_SECRET || "aefgrhbdacsg";
+
+interface AuthenticatedRequest extends Request {
+  User?: {
+    userId: number;
+  };
+}
 
 export const authenticateToken = (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return res.status(401).json({ message: "Access denied" });
+    res.status(401).json({ message: "Access denied" });
+    return; // Explicitly stop execution
   }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).json({ message: "Invalid token" });
+      res.status(403).json({ message: "Invalid token" });
+      return; // Explicitly stop execution
     }
+
     req.User = decoded as { userId: number };
-    next();
+    next(); // Call the next middleware
   });
 };

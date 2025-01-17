@@ -23,7 +23,7 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
 
 const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = 1, pageSize = 6, category, name } = req.query;
+    const { page = 1, pageSize = 6, category, name, stockQuantity } = req.query;
 
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = parseInt(pageSize as string, 10);
@@ -46,6 +46,27 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
         contains: name as string,
         mode: "insensitive",
       };
+    }
+
+    if (stockQuantity) {
+      // Convert stock status string into numerical range
+      if (stockQuantity === "In Stock") {
+        whereFilter.stockQuantity = {
+          gt: 10, // Greater than 10
+        };
+      } else if (stockQuantity === "Low Stock") {
+        whereFilter.stockQuantity = {
+          gt: 0,
+          lte: 10, // Greater than 0 and less than or equal to 10
+        };
+      } else if (stockQuantity === "Out of Stock") {
+        whereFilter.stockQuantity = {
+          lte: 0, // Less than or equal to 0
+        };
+      } else {
+        res.status(400).json({ error: "Invalid stockQuantity value provided" });
+        return;
+      }
     }
 
     const products = await prisma.product.findMany({
@@ -97,8 +118,12 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
 
 const addProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, sku, category, description, price, stockQuantity } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : "";
+    const { name, sku, category, description, price, stockQuantity, imageUrl } =
+      req.body;
+    // Update the image URL path to match the correct static serving route
+    // const imageUrl = req.file
+    //   ? `/public/protected_files/${req.file.filename}`
+    //   : "";
 
     if (!name || !sku || !price || stockQuantity === undefined) {
       res.status(400).json({
@@ -115,7 +140,7 @@ const addProduct = async (req: Request, res: Response): Promise<void> => {
         description,
         price,
         stockQuantity,
-        imageUrl,
+        imageUrl, // Store the correct image URL
       },
     });
 
@@ -126,4 +151,46 @@ const addProduct = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export { deleteProduct, addProduct, getProducts, getProductById };
+const updateProduct = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { name, sku, category, description, price, stockQuantity, imageUrl } =
+      req.body;
+
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: {
+        name: name || product.name,
+        sku: sku || product.sku,
+        category: category || product.category,
+        description: description || product.description,
+        price: price !== undefined ? price : product.price,
+        stockQuantity:
+          stockQuantity !== undefined ? stockQuantity : product.stockQuantity,
+        imageUrl: imageUrl !== undefined ? imageUrl : product.imageUrl,
+      },
+    });
+
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export {
+  deleteProduct,
+  addProduct,
+  getProducts,
+  getProductById,
+  updateProduct,
+};
