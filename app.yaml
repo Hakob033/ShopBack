@@ -1,0 +1,4 @@
+runtime: nodejs20
+entrypoint: npm start
+env_variables:
+  DATABASE_URL: "SECRET:projects/newproject-448220/secrets/DATABASE_URL/versions/latest"

@@ -5,14 +5,13 @@ import productRoutes from "./routes/productRouts";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
-import fs from "fs";
 
 dotenv.config();
 
 const app = express();
 
 // Set up the PORT variable before routes
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
